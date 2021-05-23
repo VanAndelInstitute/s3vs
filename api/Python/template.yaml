@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Lambda and API Gateway resources for s3vs'
+Parameters:
+  Stage:
+    Type: String
+    Description: API stage name
+    Default: "$default"
+    MaxLength: 128
+    AllowedPattern: "(\\$default|[a-zA-Z_0-9]*)"
+  SlidesBucketName:
+    Type: String
+    Description: Name of the bucket for uploading slides
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: "(?!^(\\d{1,3}\\.){3}\\d{1,3}$)(^[a-z0-9]([a-z0-9-]*(\\.[a-z0-9])?)*$(?<!\\-))"
+  UploadURL:
+    Type: String
+    Description: URL of the metadata upload endpoint
+    Default: ""
+  CustomDomainName:
+    Type: String
+    Description: FQDN of the API custom domain
+    Default: ""
+
+Conditions:
+  HaveCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
+
+Resources:
+  SlidesBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref SlidesBucketName
+  IIIF:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-IIIF
+      CodeUri: iiif
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Timeout: 15
+      MemorySize: 640
+      Environment:
+        Variables:
+          API_URL: !If
+            - HaveCustomDomain
+            - !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
+            - !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${AWS::StackName}/image-service/
+          BUCKET_NAME: !Ref SlidesBucketName
+      Layers:
+        - !Ref OpenSlide
+        - !Ref PillowSIMD
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SlidesBucketName
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /image-service/{imagePath+}
+            Method: GET
+  ImportMetadata:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ImportMetadata
+      CodeUri: import_metadata
+      Handler: app.lambda_handler
+      Runtime: python3.8
+      Timeout: 120
+      MemorySize: 1536
+      EventInvokeConfig:
+        MaximumEventAgeInSeconds: 180
+        MaximumRetryAttempts: 0
+      Environment:
+        Variables:
+          UPLOAD_URL: !Ref UploadURL
+      Layers:
+        - !Ref OpenSlide
+        - !Ref PillowSIMD
+        - !Ref libdmtx
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SlidesBucketName
+      Events:
+        UploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref SlidesBucket
+            Events: s3:ObjectCreated:*
+  OpenSlide:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ../common/OpenSlide
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: makefile
+  PillowSIMD:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./Pillow-SIMD
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: makefile
+  libdmtx:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ../common/libdmtx
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: makefile
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: !Ref Stage
+      CorsConfiguration:
+        AllowMethods: [GET]
+        AllowOrigins: ['*']
+  ApiMapping:
+    Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: HaveCustomDomain
+    DependsOn:
+      - HttpApiStage
+    Properties: 
+      ApiId: !Ref HttpApi
+      ApiMappingKey: !Ref AWS::StackName
+      DomainName: !Ref CustomDomainName
+      Stage: !Ref Stage
+
+Outputs:
+  ApiId:
+    Description: Id of HttpApi
+    Value: !Ref HttpApi
+  ApiUrl:
+    Description: URL of the API endpoint
+    Value: !If
+      - HaveCustomDomain
+      - !Sub https://${CustomDomainName}/${AWS::StackName}/
+      - !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${AWS::StackName}/

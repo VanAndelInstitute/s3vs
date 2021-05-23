@@ -1,0 +1,2 @@
+openslide-python==1.1.2
+pylibdmtx==0.1.9

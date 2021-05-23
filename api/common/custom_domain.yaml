@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'API Gateway custom domain for s3vs'
+Parameters:
+  CustomDomainName:
+    Type: String
+    Description: FQDN of the API custom domain
+  HostedZoneName:
+    Type: String
+    Description: Root of the API custom domain
+
+Resources:
+  CustomDomainCert:
+    Type: AWS::CertificateManager::Certificate
+    Properties:
+      DomainName: !Ref CustomDomainName
+      ValidationMethod: DNS
+  ApiCustomDomain:
+    Type: AWS::ApiGateway::DomainName
+    Properties: 
+      DomainName: !Ref CustomDomainName
+      EndpointConfiguration: REGIONAL
+      RegionalCertificateArn: !Ref CustomDomainCert
+      SecurityPolicy: TLS_1_2
+  DNSAlias:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      AliasTarget:
+          DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
+          HostedZoneId: !GetAtt APiCustomDomain.RegionalHostedZoneId
+      HostedZoneName: !Ref HostedZoneName
+      Name: CustomDomainName
+      Type: A
