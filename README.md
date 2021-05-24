@@ -2,7 +2,7 @@
 This is reference implementation for viewing Aperio SVS digital slide images from an Amazon S3 bucket.
 
 ## Front-end web client
-The S<sup>3</sup>VS front-end [(web)](/web) uses [OpenSeadragon](OpenSeadragon) and is meant to be embedded in an existing application. Once the back-end is deployed, set the service endpoint in `config.js`, and then you can test the front-end in standalone mode like so:
+The S<sup>3</sup>VS front-end [(web)](/web) uses [OpenSeadragon](https://openseadragon.github.io/) and is meant to be embedded in an existing application. Once the back-end is deployed, set the service endpoint in `config.js`, and then you can test the front-end in standalone mode like so:
 
 `npx http-server web`  
 or  
