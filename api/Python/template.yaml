@@ -22,6 +22,15 @@ Parameters:
     Type: String
     Description: FQDN of the API custom domain
     Default: ""
+  OpenSlideLayer:
+    Type: String
+    Description:  ARN of the Lambda layer version for OpenSlide
+  PillowSIMDLayer:
+    Type: String
+    Description:  ARN of the Lambda layer version for PillowSIMD
+  libdmtxLayer:
+    Type: String
+    Description:  ARN of the Lambda layer version for libdmtx
 
 Conditions:
   HaveCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
@@ -49,8 +58,8 @@ Resources:
             - !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${AWS::StackName}/image-service/
           BUCKET_NAME: !Ref SlidesBucketName
       Layers:
-        - !Ref OpenSlide
-        - !Ref PillowSIMD
+        - !Ref OpenSlideLayer
+        - !Ref PillowSIMDLayer
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref SlidesBucketName
@@ -77,9 +86,9 @@ Resources:
         Variables:
           UPLOAD_URL: !Ref UploadURL
       Layers:
-        - !Ref OpenSlide
-        - !Ref PillowSIMD
-        - !Ref libdmtx
+        - !Ref OpenSlideLayer
+        - !Ref PillowSIMDLayer
+        - !Ref libdmtxLayer
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref SlidesBucketName
@@ -89,30 +98,6 @@ Resources:
           Properties:
             Bucket: !Ref SlidesBucket
             Events: s3:ObjectCreated:*
-  OpenSlide:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      ContentUri: ../common/OpenSlide
-      CompatibleRuntimes:
-        - python3.8
-    Metadata:
-      BuildMethod: makefile
-  PillowSIMD:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      ContentUri: ./Pillow-SIMD
-      CompatibleRuntimes:
-        - python3.8
-    Metadata:
-      BuildMethod: makefile
-  libdmtx:
-    Type: AWS::Serverless::LayerVersion
-    Properties:
-      ContentUri: ../common/libdmtx
-      CompatibleRuntimes:
-        - python3.8
-    Metadata:
-      BuildMethod: makefile
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:

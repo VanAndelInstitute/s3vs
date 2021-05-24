@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Lambda layers for s3vs'
+Resources:
+  OpenSlide:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./OpenSlide
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: makefile
+  PillowSIMD:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./Pillow-SIMD
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: makefile
+  libdmtx:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./libdmtx
+      CompatibleRuntimes:
+        - python3.8
+    Metadata:
+      BuildMethod: makefile
+
+Outputs:
+  Layers:
+    Description: ARNs of all layers
+    Value: !Sub '${OpenSlide}, ${PillowSIMD}, ${libdmtx}'

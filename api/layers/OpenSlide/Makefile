@@ -52,18 +52,23 @@ build-OpenSlide:
 	git clone https://github.com/json-c/json-c.git
 	mkdir json-c-build
 	cd json-c-build \
-	&& cmake3 -DCMAKE_INSTALL_PREFIX=$(ARTIFACTS_DIR) -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_BUILD_TYPE="release" ../json-c \
+	&& cmake3 -DCMAKE_BUILD_TYPE="release" ../json-c \
 	&& make \
 	&& make install
+	cp /usr/local/lib64/libjson-c.so.5 "$(ARTIFACTS_DIR)/lib"
 
-	git clone https://github.com/VanAndelInstitute/openslide-vsi.git
-	cd openslide-vsi \
-	&& cd src/gdal \
-	&& ./configure --with-proj=no --disable-all-optional-drivers --prefix=$(ARTIFACTS_DIR) --with-libjson-c="$(ARTIFACTS_DIR)" \
+	curl -o gdal.zip -L https://github.com/VanAndelInstitute/gdal-vsi/archive/refs/heads/master.zip
+	unzip gdal.zip
+	cd gdal-vsi-master/gdal \
+	&& ./configure --with-proj=no --disable-all-optional-drivers --prefix=/usr --libdir=/usr/lib64 \
 	&& make -j8 \
 	&& make install
-	cd openslide-vsi \
+	cp /usr/lib64/libgdal.so.29 "$(ARTIFACTS_DIR)/lib"
+
+	git clone https://github.com/VanAndelInstitute/openslide.git
+	cd openslide \
 	&& autoreconf -i \
-	&& ./configure --prefix=$(ARTIFACTS_DIR) \
+	&& ./configure \
 	&& make \
 	&& make install
+	cp /usr/local/lib/libopenslide.so.0 "$(ARTIFACTS_DIR)/lib"
