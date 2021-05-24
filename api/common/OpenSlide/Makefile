@@ -58,7 +58,6 @@ build-OpenSlide:
 
 	git clone https://github.com/VanAndelInstitute/openslide-vsi.git
 	cd openslide-vsi \
-	&& git checkout gdal \
 	&& cd src/gdal \
 	&& ./configure --with-proj=no --disable-all-optional-drivers --prefix=$(ARTIFACTS_DIR) --with-libjson-c="$(ARTIFACTS_DIR)" \
 	&& make -j8 \
