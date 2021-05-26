@@ -82,8 +82,8 @@ Resources:
       CodeUri: import_metadata
       Handler: app.lambda_handler
       Runtime: python3.8
-      Timeout: 120
-      MemorySize: 1536
+      Timeout: 30
+      MemorySize: 512
       EventInvokeConfig:
         MaximumEventAgeInSeconds: 180
         MaximumRetryAttempts: 0
