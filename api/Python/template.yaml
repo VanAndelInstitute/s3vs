@@ -17,7 +17,12 @@ Parameters:
   UploadURL:
     Type: String
     Description: URL of the metadata upload endpoint
-    Default: ""
+  SecretName:
+    Type: String
+    Description: Secret name for the upload endpoint credentials
+  SecretArn:
+    Type: String
+    Description: Secret ARN for the upload endpoint credentials
   CustomDomainName:
     Type: String
     Description: FQDN of the API custom domain
@@ -85,6 +90,8 @@ Resources:
       Environment:
         Variables:
           UPLOAD_URL: !Ref UploadURL
+          SECRET_NAME: !Ref SecretName
+          REGION_NAME: !Ref AWS::Region
       Layers:
         - !Ref OpenSlideLayer
         - !Ref PillowSIMDLayer
@@ -92,6 +99,8 @@ Resources:
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref SlidesBucketName
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref SecretArn
       Events:
         UploadEvent:
           Type: S3

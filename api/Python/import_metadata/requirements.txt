@@ -1,2 +1,3 @@
 openslide-python==1.1.2
 pylibdmtx==0.1.9
+requests==2.25.1
