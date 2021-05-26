@@ -72,3 +72,5 @@ build-OpenSlide:
 	&& make \
 	&& make install
 	cp /usr/local/lib/libopenslide.so.0 "$(ARTIFACTS_DIR)/lib"
+
+	pip install openslide-python --no-deps -t "$(ARTIFACTS_DIR)/python"
