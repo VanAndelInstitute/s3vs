@@ -2,5 +2,6 @@
 
 **/build/*
 **/cache/*
+**/build.toml
 
-*.toml
+.vscode/
