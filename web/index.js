@@ -74,4 +74,7 @@ const parseQueryString = () => {
         text: text + " (" + magnification + ")"
       };
     }
+
+    var label = document.getElementById("label");
+    label.src = `${config.iiifUri}/${imageId}/label.jpg`;
   })(OpenSeadragon);
