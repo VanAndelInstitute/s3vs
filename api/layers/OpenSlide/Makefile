@@ -52,10 +52,10 @@ build-OpenSlide:
 	git clone https://github.com/json-c/json-c.git
 	mkdir json-c-build
 	cd json-c-build \
-	&& cmake3 -DCMAKE_BUILD_TYPE="release" ../json-c \
+	&& cmake3 -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE="release" ../json-c \
 	&& make \
 	&& make install
-	cp /usr/local/lib64/libjson-c.so.5 "$(ARTIFACTS_DIR)/lib"
+	cp /usr/lib64/libjson-c.so.5 "$(ARTIFACTS_DIR)/lib"
 
 	curl -o gdal.zip -L https://github.com/VanAndelInstitute/gdal-vsi/archive/refs/heads/master.zip
 	unzip gdal.zip
@@ -68,9 +68,9 @@ build-OpenSlide:
 	git clone https://github.com/VanAndelInstitute/openslide.git
 	cd openslide \
 	&& autoreconf -i \
-	&& ./configure \
+	&& ./configure --prefix=/usr --libdir=/usr/lib64 \
 	&& make \
 	&& make install
-	cp /usr/local/lib/libopenslide.so.0 "$(ARTIFACTS_DIR)/lib"
+	cp /usr/lib64/libopenslide.so.0 "$(ARTIFACTS_DIR)/lib"
 
 	pip install openslide-python --no-deps -t "$(ARTIFACTS_DIR)/python"
