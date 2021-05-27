@@ -52,7 +52,7 @@ def lambda_handler(event, context):
         logger.info(image_path)
         # 1001610/info.json
         # 1001610/0,0,2880,2880/720,/0/default.jpg
-        match = re.match(r'(?P<image_id>\w+)/((?P<info>(info|properties)\.json)|(?P<assoc>(thumbnail|label)\.jpeg)|(?P<region>\d+,\d+,\d+,\d+)/(?P<size>\d*,\d*)/(?P<rotation>\d{1,3})/(?P<quality>color|gray|bitonal|default)\.(?P<format>jpg|tif|png|gif|jp2|pdf|webp))', image_path)
+        match = re.match(r'(?P<image_id>\w+)/((?P<info>(info|properties)\.json)|((?P<assoc>(thumbnail|label))\.jpg)|(?P<region>\d+,\d+,\d+,\d+)/(?P<size>\d*,\d*)/(?P<rotation>\d{1,3})/(?P<quality>color|gray|bitonal|default)\.(?P<format>jpg|tif|png|gif|jp2|pdf|webp))', image_path)
         if not match:
             raise ValueError(f'Bad resource request: {image_path}')
 
@@ -84,9 +84,10 @@ def lambda_handler(event, context):
             properties = dict(osr.properties)
             return respond(json.dumps(properties), content_type='application/json')
         elif bool(assoc_request):
+            _format = 'jpeg'
             image = osr.associated_images.get(assoc_request).convert('RGB')
             buf = BytesIO()
-            image.save(buf, 'jpg', quality=TILE_QUALITY)
+            image.save(buf, _format, quality=TILE_QUALITY)
             image.close()
             result = buf.getvalue()
         else:
