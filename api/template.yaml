@@ -14,19 +14,25 @@ Parameters:
     MinLength: 3
     MaxLength: 63
     AllowedPattern: "(?!^(\\d{1,3}\\.){3}\\d{1,3}$)(^[a-z0-9]([a-z0-9-]*(\\.[a-z0-9])?)*$(?<!\\-))"
+  UseExistingBucket:
+    Type: String
+    Description: Don't create the slides bucket or the import function
+    Default: "No"
   UploadURL:
     Type: String
     Description: URL of the metadata upload endpoint
+    Default: ""
   SecretName:
     Type: String
     Description: Secret name for the upload endpoint credentials
+    Default: ""
   SecretArn:
     Type: String
     Description: Secret ARN for the upload endpoint credentials
+    Default: ""
   CustomDomainName:
     Type: String
     Description: FQDN of the API custom domain
-    Default: ""
   OpenSlideLayer:
     Type: String
     Description:  ARN of the Lambda layer version for OpenSlide
@@ -36,35 +42,37 @@ Parameters:
   libdmtxLayer:
     Type: String
     Description:  ARN of the Lambda layer version for libdmtx
+  IccProfilesLayer:
+    Type: String
+    Description:  ARN of the Lambda layer version for ICC profile files
 
 Conditions:
-  HaveCustomDomain: !Not [!Equals [!Ref CustomDomainName, ""]]
+  CreateNewSlidesBucket: !Equals [!Ref UseExistingBucket, "No"]
 
 Resources:
   SlidesBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateNewSlidesBucket
     DeletionPolicy: Retain
     Properties:
       BucketName: !Ref SlidesBucketName
-  IIIF:
+  ImageService:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-IIIF
-      CodeUri: iiif
+      FunctionName: !Sub ${AWS::StackName}-ImageService
+      CodeUri: image-service
       Handler: app.lambda_handler
       Runtime: python3.8
       Timeout: 15
       MemorySize: 640
       Environment:
         Variables:
-          API_URL: !If
-            - HaveCustomDomain
-            - !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
-            - !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${AWS::StackName}/image-service/
+          API_URL: !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
           BUCKET_NAME: !Ref SlidesBucketName
       Layers:
         - !Ref OpenSlideLayer
         - !Ref PillowSIMDLayer
+        - !Ref IccProfilesLayer
       Policies:
         - S3ReadPolicy:
             BucketName: !Ref SlidesBucketName
@@ -77,9 +85,10 @@ Resources:
             Method: GET
   ImportMetadata:
     Type: AWS::Serverless::Function
+    Condition: CreateNewSlidesBucket
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ImportMetadata
-      CodeUri: import_metadata
+      CodeUri: import-metadata
       Handler: app.lambda_handler
       Runtime: python3.8
       Timeout: 30
@@ -116,7 +125,6 @@ Resources:
         AllowOrigins: ['*']
   ApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping
-    Condition: HaveCustomDomain
     DependsOn:
       - HttpApiStage
     Properties: 
@@ -131,7 +139,4 @@ Outputs:
     Value: !Ref HttpApi
   ApiUrl:
     Description: URL of the API endpoint
-    Value: !If
-      - HaveCustomDomain
-      - !Sub https://${CustomDomainName}/${AWS::StackName}/
-      - !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/${AWS::StackName}/
+    Value: !Sub https://${CustomDomainName}/${AWS::StackName}/
