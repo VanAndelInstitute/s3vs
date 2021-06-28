@@ -52,7 +52,7 @@ const parseQueryString = () => {
         sizeAndTextRenderer: scalebarSizeAndTextRenderer
       });
       viewer.addHandler('zoom', (e) => {
-        magnification = Number(viewer.viewport.viewportToImageZoom(e.zoom) * props["aperio.AppMag"]).toFixed(1) + "X";
+        magnification = Number(viewer.viewport.viewportToImageZoom(e.zoom) * props["aperio.AppMag"]).toPrecision(3) + "X";
       });
       viewer.measurementTool({
         mpp: {
