@@ -1,6 +1,7 @@
 import os
 import openslide
 from PIL import Image
+from PIL import ImageCms
 import traceback as tb
 import base64
 import json
@@ -14,10 +15,15 @@ logger.setLevel(logging.INFO)
 
 API_URL = os.environ.get('API_URL')
 BUCKET_NAME = os.environ.get('BUCKET_NAME')
+ICC_PROFILE_PROPERTY_NAME = 'aperio.ICC Profile'
+ICC_AT2 = '/opt/AT2.icm'
+ICC_SCANSCOPE = '/opt/ScanScope v1.icm'
+ICC_DEST = '/opt/sRGB Color Space Profile.icm'
 TILE_SIZE = 720
 TILE_QUALITY = 70
 
 open_slides = {}
+colorTransforms = {}
 
 def get_best_level_for_downsample(osr, downsample):
     """ Use our own implementation of this since OpenSlide's doesn't handle 
@@ -59,8 +65,17 @@ def lambda_handler(event, context):
         image_id = match.group('image_id')
         if image_id in open_slides:
             osr = open_slides[image_id]
+            colorTransform = colorTransforms[image_id]
         else:
             osr = open_slides[image_id] = openslide.open_slide(f'/vsis3/{BUCKET_NAME}/{image_id}.svs')
+            icc_profile_name = osr.properties.get(ICC_PROFILE_PROPERTY_NAME)
+            if icc_profile_name == 'AT2':
+                source_icc = ImageCms.ImageCmsProfile(ICC_AT2)
+            elif icc_profile_name == 'ScanScope v1':
+                source_icc = ImageCms.ImageCmsProfile(ICC_SCANSCOPE)
+            dest_icc = ImageCms.ImageCmsProfile(ICC_DEST)
+            intent = ImageCms.getDefaultIntent(source_icc)
+            colorTransform = colorTransforms[image_id] = ImageCms.buildTransform(source_icc, dest_icc, 'RGBA', 'RGBA', intent)
 
         info_request = match.group('info')
         assoc_request = match.group('assoc')
@@ -103,13 +118,16 @@ def lambda_handler(event, context):
             size = match.group('size').split(',')
             size = (int(size[0] or size[1]),int(size[1] or size[0]))
             region_size = tuple(l * downsample // downsamples[level] for l in size)
-            tile = osr.read_region((x,y), level, region_size)
-            if tile.size != size:
-                tile.thumbnail(size, Image.ANTIALIAS)
-            tile = tile.convert('RGB')
+            tile_im = osr.read_region((x,y), level, region_size)
+            if tile_im.size != size:
+                tile_im.thumbnail(size, Image.ANTIALIAS)
+            transformed_im = ImageCms.applyTransform(tile_im, colorTransform)
+            tile_im.close()
+            converted_im = transformed_im.convert('RGB')
+            transformed_im.close()
             buf = BytesIO()
-            tile.save(buf, _format, quality=TILE_QUALITY)
-            tile.close()
+            converted_im.save(buf, _format, quality=TILE_QUALITY)
+            converted_im.close()
             result = buf.getvalue()
 
         return respond(base64.b64encode(result), content_type=f'image/{_format}')

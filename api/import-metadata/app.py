@@ -88,11 +88,11 @@ def lambda_handler(event, context):
         slide_id = label_data[0].data.decode('ascii')
 
         # get metadata
-        width, height = osr.dimensions
-        scan_date = osr.properties.get(PROPERTY_NAME_APERIO_DATE)
-        scan_time = osr.properties.get(PROPERTY_NAME_APERIO_TIME)
-        scan_timezone = osr.properties.get(PROPERTY_NAME_APERIO_TZ)
-        scandate = datetime.strptime(f'{scan_date} {scan_time} {scan_timezone}', '%m/%d/%y %H:%M:%S %Z%z')
+        # width, height = osr.dimensions
+        # scan_date = osr.properties.get(PROPERTY_NAME_APERIO_DATE)
+        # scan_time = osr.properties.get(PROPERTY_NAME_APERIO_TIME)
+        # scan_timezone = osr.properties.get(PROPERTY_NAME_APERIO_TZ)
+        # scandate = datetime.strptime(f'{scan_date} {scan_time} {scan_timezone}', '%m/%d/%y %H:%M:%S %Z%z')
         metadata = {
             # 'Filename': key.strip(),
             'ImageId': image_id.strip(),

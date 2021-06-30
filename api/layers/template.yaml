@@ -26,8 +26,12 @@ Resources:
         - python3.8
     Metadata:
       BuildMethod: makefile
+  IccProfiles:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      ContentUri: ./ICC_Profiles
 
 Outputs:
   Layers:
     Description: ARNs of all layers
-    Value: !Sub '${OpenSlide}, ${PillowSIMD}, ${libdmtx}'
+    Value: !Sub '${OpenSlide}, ${PillowSIMD}, ${libdmtx}, ${IccProfiles}'
