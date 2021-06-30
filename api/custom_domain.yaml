@@ -19,7 +19,9 @@ Resources:
     Type: AWS::ApiGateway::DomainName
     Properties: 
       DomainName: !Ref CustomDomainName
-      EndpointConfiguration: REGIONAL
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
       RegionalCertificateArn: !Ref CustomDomainCert
       SecurityPolicy: TLS_1_2
   DNSAlias:
@@ -27,7 +29,7 @@ Resources:
     Properties:
       AliasTarget:
           DNSName: !GetAtt ApiCustomDomain.RegionalDomainName
-          HostedZoneId: !GetAtt APiCustomDomain.RegionalHostedZoneId
+          HostedZoneId: !GetAtt ApiCustomDomain.RegionalHostedZoneId
       HostedZoneName: !Ref HostedZoneName
-      Name: CustomDomainName
+      Name: !Ref CustomDomainName
       Type: A
