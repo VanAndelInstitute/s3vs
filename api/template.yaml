@@ -45,6 +45,10 @@ Parameters:
   IccProfilesLayer:
     Type: String
     Description:  ARN of the Lambda layer version for ICC profile files
+  FrameAncestors:
+    Type: String
+    Description: URL of the metadata upload endpoint
+    Default: "'none'"
 
 Conditions:
   CreateNewSlidesBucket: !Equals [!Ref UseExistingBucket, "No"]
@@ -69,6 +73,7 @@ Resources:
         Variables:
           API_URL: !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
           BUCKET_NAME: !Ref SlidesBucketName
+          FRAME_ANCESTORS: !Ref FrameAncestors
       Layers:
         - !Ref OpenSlideLayer
         - !Ref PillowSIMDLayer

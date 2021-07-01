@@ -15,6 +15,7 @@ logger.setLevel(logging.INFO)
 
 API_URL = os.environ.get('API_URL')
 BUCKET_NAME = os.environ.get('BUCKET_NAME')
+FRAME_ANCESTORS = os.environ.get('FRAME_ANCESTORS', "'none'")
 ICC_PROFILE_PROPERTY_NAME = 'aperio.ICC Profile'
 ICC_AT2 = '/opt/AT2.icm'
 ICC_SCANSCOPE = '/opt/ScanScope v1.icm'
@@ -38,7 +39,12 @@ def respond(success, error=None, status=200, content_type=None):
     response = {
         'statusCode': status,
         'body': ''.join(tb.format_exception(type(error), error, error.__traceback__)) if error else success,
-        'headers': {},
+        'headers': {
+            'Strict-Transport-Security': "max-age=31536000",
+            'Content-Security-Policy': f"default-src 'self'; frame-ancestors {FRAME_ANCESTORS}",
+            'X-Content-Type-Options': "nosniff",
+            'Referrer-Policy': 'same-origin',
+        },
     }
     if content_type:
         response['headers']['Content-Type'] = content_type
