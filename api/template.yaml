@@ -60,6 +60,22 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       BucketName: !Ref SlidesBucketName
+  SigningProfile:
+    Type: AWS::Signer::SigningProfile
+    Properties: 
+      PlatformId: AWSLambda-SHA384-ECDSA
+      SignatureValidityPeriod: 
+        Type: YEARS
+        Value: 5
+  CodeSigningConfig:
+    Type: AWS::Lambda::CodeSigningConfig
+    Properties: 
+      AllowedPublishers: 
+        SigningProfileVersionArns:
+          - !Ref SigningProfile
+      CodeSigningPolicies: 
+          UntrustedArtifactOnDeployment: Enforce
+      Description: !Sub ${AWS::StackName}-signing
   ImageService:
     Type: AWS::Serverless::Function
     Properties:
@@ -69,6 +85,7 @@ Resources:
       Runtime: python3.8
       Timeout: 15
       MemorySize: 640
+      CodeSigningConfigArn: !Ref CodeSigningConfig
       Environment:
         Variables:
           API_URL: !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
