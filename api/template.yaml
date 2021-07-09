@@ -72,7 +72,7 @@ Resources:
     Properties: 
       AllowedPublishers: 
         SigningProfileVersionArns:
-          - !Ref SigningProfile
+          - !GetAtt SigningProfile.ProfileVersionArn
       CodeSigningPolicies: 
           UntrustedArtifactOnDeployment: Enforce
       Description: !Sub ${AWS::StackName}-signing
@@ -115,6 +115,7 @@ Resources:
       Runtime: python3.8
       Timeout: 30
       MemorySize: 512
+      CodeSigningConfigArn: !Ref CodeSigningConfig
       EventInvokeConfig:
         MaximumEventAgeInSeconds: 180
         MaximumRetryAttempts: 0
