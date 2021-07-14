@@ -12,7 +12,6 @@ import requests
 
 logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 PROPERTY_NAME_APERIO_IMAGEID = u'aperio.ImageID'
 PROPERTY_NAME_APERIO_DATE = u'aperio.Date'
@@ -24,6 +23,15 @@ PROPERTY_NAME_APERIO_APPMAG = u'aperio.AppMag'
 UPLOAD_URL = os.environ.get('UPLOAD_URL')
 SECRET_NAME = os.environ.get('SECRET_NAME')
 REGION_NAME = os.environ.get('REGION_NAME')
+if (os.environ.get('DEBUG', False)):
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
+
+class UploadError(Exception):
+    def __init__( self, msg ):
+        self.host = msg
+        Exception.__init__(self, f'Endpoint "{UPLOAD_URL}" responded with "{msg}"')
 
 def get_secret():
     # Create a Secrets Manager client
@@ -64,9 +72,10 @@ def get_secret():
             return json.loads(get_secret_value_response['SecretString'])
         else:
             return json.loads(base64.b64decode(get_secret_value_response['SecretBinary']))
-            
+
 
 def lambda_handler(event, context):
+    logger.debug(json.dumps(event))
     bucket = event['Records'][0]['s3']['bucket']['name']
     key = unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     logger.info(f'Filename = {key}')
@@ -93,9 +102,9 @@ def lambda_handler(event, context):
         # scan_time = osr.properties.get(PROPERTY_NAME_APERIO_TIME)
         # scan_timezone = osr.properties.get(PROPERTY_NAME_APERIO_TZ)
         # scandate = datetime.strptime(f'{scan_date} {scan_time} {scan_timezone}', '%m/%d/%y %H:%M:%S %Z%z')
-        metadata = {
+        metadata = json.dumps({
             # 'Filename': key.strip(),
-            'ImageId': image_id.strip(),
+            'ImageId': int(image_id.strip()),
             'SlideId': slide_id.strip(),
             # 'width': width,
             # 'height': height,
@@ -103,15 +112,15 @@ def lambda_handler(event, context):
             # 'MPP': osr.properties.get(PROPERTY_NAME_APERIO_MPP),
             # 'AppMag': osr.properties.get(PROPERTY_NAME_APERIO_APPMAG),
             # 'lastModified': datetime.now(timezone.utc).isoformat(timespec='milliseconds'),
-        }
+        })
+        logger.debug(metadata)
 
         # upload metadata
         auth = get_secret()
         x = requests.post(url=UPLOAD_URL, auth=(auth['username'], auth['password']), data=metadata)
+        logger.debug(f'Upload responded with {x.status_code}: {x.reason}')
         if (x.status_code < 200 | x.status_code >= 400):
-            logger.error(f'Metadata upload failed with {x.status_code}: {x.reason}')
-        else:
-            logger.info(f'Metadata upload responded with {x.status_code}: {x.reason}')
+            raise UploadError(x.json())
     except Exception as e:
         logger.error(e)
         raise e
