@@ -69,7 +69,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImageService
       CodeUri: image-service
       Handler: app.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 15
       MemorySize: 640
       CodeSigningConfigArn: !Ref CodeSigningConfig
@@ -98,7 +98,7 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImportMetadata
       CodeUri: import-metadata
       Handler: app.lambda_handler
-      Runtime: python3.8
+      Runtime: python3.9
       Timeout: 30
       MemorySize: 512
       CodeSigningConfigArn: !Ref CodeSigningConfig
