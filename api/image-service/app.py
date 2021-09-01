@@ -112,7 +112,9 @@ def lambda_handler(event, context):
             image.close()
             result = buf.getvalue()
         else:
-            _format = 'jpeg' if match.group('format') == 'jpg' else _format
+            _format = match.group('format')
+            if _format == 'jpg':
+                _format = 'jpeg'
             region = match.group('region').split(',')
             x = int(region[0])
             y = int(region[1])
@@ -122,7 +124,7 @@ def lambda_handler(event, context):
             downsamples = list(map(lambda d: round(d), osr.level_downsamples))
             level = get_best_level_for_downsample(osr, downsample)
             size = match.group('size').split(',')
-            size = (int(size[0] or size[1]),int(size[1] or size[0]))
+            size = (TILE_SIZE,TILE_SIZE)
             region_size = tuple(l * downsample // downsamples[level] for l in size)
             tile_im = osr.read_region((x,y), level, region_size)
             if tile_im.size != size:
