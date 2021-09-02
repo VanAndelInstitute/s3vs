@@ -19,13 +19,23 @@ const parseQueryString = () => {
 (async function($) {
     let params = parseQueryString();
     let imageId = params["imageId"];
-    let props = await (await fetch(
+    let response = await fetch(
       `${config.iiifUri}/${imageId}/properties.json`,
       {
         headers: {
           'Accept': 'application/json'
         },
-      })).json();
+      });
+      if (!response.ok) {
+        let error = await response.text();
+        var span = document.createElement('span');
+        span.style.color = "black";
+        span.style.fontSize = "x-large";
+        span.appendChild(document.createTextNode(error));
+        document.getElementById("root").appendChild(span); 
+        return
+      }
+      let props = await response.json();  
     let viewer = new $.Viewer({
       constrainDuringPan: true,
       id: 'root',

@@ -139,6 +139,8 @@ def lambda_handler(event, context):
             result = buf.getvalue()
 
         return respond(base64.b64encode(result), content_type=f'image/{_format}')
-        
+    
+    except openslide.OpenSlideError:
+        return respond(f'Image ID {image_id} not found', None, 404)
     except Exception as e:
         return respond(None, e, 400)
