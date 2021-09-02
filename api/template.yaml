@@ -70,7 +70,7 @@ Resources:
       CodeUri: image-service
       Handler: app.lambda_handler
       Runtime: python3.9
-      Timeout: 15
+      Timeout: 20
       MemorySize: 640
       CodeSigningConfigArn: !Ref CodeSigningConfig
       Environment:
