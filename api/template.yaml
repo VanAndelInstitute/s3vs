@@ -45,6 +45,14 @@ Parameters:
     Type: String
     Description: URL of the metadata upload endpoint
     Default: "'none'"
+  SlideIdFormat:
+    Type: String
+    Description: RegEx of the slide ID format
+    Default: "\\w+"
+  TextractThreshold:
+    Type: String
+    Description: URL of the metadata upload endpoint
+    Default: "85"
 
 Resources:
   SigningProfile:
@@ -99,7 +107,7 @@ Resources:
       CodeUri: import-metadata
       Handler: app.lambda_handler
       Runtime: python3.9
-      Timeout: 30
+      Timeout: 60
       MemorySize: 512
       CodeSigningConfigArn: !Ref CodeSigningConfig
       EventInvokeConfig:
@@ -110,6 +118,8 @@ Resources:
           UPLOAD_URL: !Ref UploadURL
           SECRET_NAME: !Ref SecretName
           REGION_NAME: !Ref AWS::Region
+          SLIDEID_FORMAT: !Ref SlideIdFormat
+          TEXTRACT_THRESHOLD: !Ref TextractThreshold
       Layers:
         - !Ref OpenSlideLayer
         - !Ref PillowSIMDLayer
@@ -119,6 +129,7 @@ Resources:
             BucketName: !Ref SlidesBucketName
         - AWSSecretsManagerGetSecretValuePolicy:
             SecretArn: !Ref SecretArn
+        - TextractDetectAnalyzePolicy: {}
   ImportMetadataUploadEventPermission:
     Type: AWS::Lambda::Permission
     Properties: 

@@ -9,6 +9,8 @@ from pylibdmtx import pylibdmtx
 from datetime import datetime, timezone
 import logging
 import requests
+import re
+from io import BytesIO
 
 logging.basicConfig(level=logging.INFO) 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,8 @@ PROPERTY_NAME_APERIO_APPMAG = u'aperio.AppMag'
 UPLOAD_URL = os.environ.get('UPLOAD_URL')
 SECRET_NAME = os.environ.get('SECRET_NAME')
 REGION_NAME = os.environ.get('REGION_NAME')
+SLIDEID_FORMAT = os.environ.get('SLIDEID_FORMAT', r'\w+')
+TEXTRACT_THRESHOLD = os.environ.get('TEXTRACT_THRESHOLD', 85)
 if (os.environ.get('DEBUG', False)):
     logger.setLevel(logging.DEBUG)
 else:
@@ -73,6 +77,16 @@ def get_secret():
         else:
             return json.loads(base64.b64decode(get_secret_value_response['SecretBinary']))
 
+def match_id(block):
+    if block['BlockType'] != 'LINE':
+        return False
+    logger.debug(f'Text: {block["Text"]}')
+    logger.debug(f'Confidence: {block["Confidence"]:.3f}')
+    if not re.match(SLIDEID_FORMAT, block['Text']):
+        return False
+    if block['Confidence'] < float(TEXTRACT_THRESHOLD):
+        return False
+    return True
 
 def lambda_handler(event, context):
     logger.debug(json.dumps(event))
@@ -87,14 +101,24 @@ def lambda_handler(event, context):
         
         # Extract label and thumbnail images
         label = osr.associated_images.get(u'label').convert('RGB')
+        buf = BytesIO()
+        label.save(buf, format='JPEG')
+        #imageBytes = base64.b64encode(buf.getvalue())
+        imageBytes = buf.getvalue()
+        client = boto3.client('textract')
+        response = client.detect_document_text(Document={'Bytes': imageBytes})
+        matches = [block['Text'] for block in response['Blocks'] if match_id(block)]
+        if len(matches) == 1:
+            slide_id = matches[0]
+        else:
+            # decode slide id from 2D Data Matrix barcode in label image
+            label_data = pylibdmtx.decode(label)
+            if len(label_data) != 1:
+                logger.error('Bad label data')
+                return
 
-        # decode slide id from 2D Data Matrix barcode in label image
-        label_data = pylibdmtx.decode(label)
-        if len(label_data) != 1:
-            logger.error('Bad label data')
-            return
-
-        slide_id = label_data[0].data.decode('ascii')
+            slide_id = label_data[0].data.decode('ascii')
+        label.close()
 
         # get metadata
         # width, height = osr.dimensions
