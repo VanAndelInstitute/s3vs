@@ -71,12 +71,12 @@ Resources:
       CodeSigningPolicies: 
           UntrustedArtifactOnDeployment: Warn
       Description: !Sub ${AWS::StackName}-signing
-  ImageService:
+  ImageInfo:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub ${AWS::StackName}-ImageService
+      FunctionName: !Sub ${AWS::StackName}-ImageInfo
       CodeUri: image-service
-      Handler: app.lambda_handler
+      Handler: app.info_handler
       Runtime: python3.9
       Timeout: 20
       MemorySize: 640
@@ -84,6 +84,114 @@ Resources:
       Environment:
         Variables:
           API_URL: !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
+          BUCKET_NAME: !Ref SlidesBucketName
+          FRAME_ANCESTORS: !Ref FrameAncestors
+      Layers:
+        - !Ref OpenSlideLayer
+        - !Ref PillowSIMDLayer
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SlidesBucketName
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /image-service/{imageId}/info.json
+            Method: GET
+  ImageProperties:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ImageProperties
+      CodeUri: image-service
+      Handler: app.properties_handler
+      Runtime: python3.9
+      Timeout: 20
+      MemorySize: 640
+      CodeSigningConfigArn: !Ref CodeSigningConfig
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref SlidesBucketName
+          FRAME_ANCESTORS: !Ref FrameAncestors
+      Layers:
+        - !Ref OpenSlideLayer
+        - !Ref PillowSIMDLayer
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SlidesBucketName
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /image-service/{imageId}/properties.json
+            Method: GET
+  ImageLabel:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ImageLabel
+      CodeUri: image-service
+      Handler: app.label_handler
+      Runtime: python3.9
+      Timeout: 20
+      MemorySize: 640
+      CodeSigningConfigArn: !Ref CodeSigningConfig
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref SlidesBucketName
+          FRAME_ANCESTORS: !Ref FrameAncestors
+      Layers:
+        - !Ref OpenSlideLayer
+        - !Ref PillowSIMDLayer
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SlidesBucketName
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /image-service/{imageId}/label.jpg
+            Method: GET
+  ImageThumbnail:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ImageThumbnail
+      CodeUri: image-service
+      Handler: app.thumbnail_handler
+      Runtime: python3.9
+      Timeout: 20
+      MemorySize: 640
+      CodeSigningConfigArn: !Ref CodeSigningConfig
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref SlidesBucketName
+          FRAME_ANCESTORS: !Ref FrameAncestors
+      Layers:
+        - !Ref OpenSlideLayer
+        - !Ref PillowSIMDLayer
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SlidesBucketName
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /image-service/{imageId}/thumbnail.jpg
+            Method: GET
+  ImageTile:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-ImageTile
+      CodeUri: image-service
+      Handler: app.tile_handler
+      Runtime: python3.9
+      Timeout: 20
+      MemorySize: 640
+      CodeSigningConfigArn: !Ref CodeSigningConfig
+      Environment:
+        Variables:
           BUCKET_NAME: !Ref SlidesBucketName
           FRAME_ANCESTORS: !Ref FrameAncestors
       Layers:
@@ -98,7 +206,7 @@ Resources:
           Type: HttpApi
           Properties:
             ApiId: !Ref HttpApi
-            Path: /image-service/{imagePath+}
+            Path: /image-service/{imageId}/{region}/{size}/0/default.jpg
             Method: GET
   ImportMetadata:
     Type: AWS::Serverless::Function
