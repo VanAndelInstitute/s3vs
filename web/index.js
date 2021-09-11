@@ -19,6 +19,20 @@ const parseQueryString = () => {
 (async function($) {
     let params = parseQueryString();
     let imageId = params["imageId"];
+    var label = document.getElementById("label");
+    label.src = `${config.iiifUri}/${imageId}/label.jpg`;
+    let viewer = new $.Viewer({
+      constrainDuringPan: true,
+      id: 'root',
+      navigatorPosition: 'BOTTOM_RIGHT',
+      navigatorAutoFade: false,
+      showNavigator: true,
+      showNavigationControl: false,
+      tileSources: [`${config.iiifUri}/${imageId}/info.json`],
+      maxZoomPixelRatio: 1,
+      visibilityRatio: 0.5,
+    });
+    
     let response = await fetch(
       `${config.iiifUri}/${imageId}/properties.json`,
       {
@@ -35,18 +49,7 @@ const parseQueryString = () => {
         document.getElementById("root").appendChild(span); 
         return
       }
-      let props = await response.json();  
-    let viewer = new $.Viewer({
-      constrainDuringPan: true,
-      id: 'root',
-      navigatorPosition: 'BOTTOM_RIGHT',
-      navigatorAutoFade: false,
-      showNavigator: true,
-      showNavigationControl: false,
-      tileSources: [`${config.iiifUri}/${imageId}/info.json`],
-      maxZoomPixelRatio: 1,
-      visibilityRatio: 0.5,
-    });
+      let props = await response.json();
     
     let magnification;
     try {
@@ -84,7 +87,4 @@ const parseQueryString = () => {
         text: text + " (" + magnification + ")"
       };
     }
-
-    var label = document.getElementById("label");
-    label.src = `${config.iiifUri}/${imageId}/label.jpg`;
   })(OpenSeadragon);
