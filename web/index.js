@@ -46,7 +46,8 @@ const parseQueryString = () => {
         span.style.color = "black";
         span.style.fontSize = "x-large";
         span.appendChild(document.createTextNode(error));
-        document.getElementById("root").appendChild(span); 
+        viewer.container.replaceWith(span);
+        label.remove();
         return
       }
       let props = await response.json();
