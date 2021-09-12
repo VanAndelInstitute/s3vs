@@ -40,9 +40,11 @@ def get_best_level_for_downsample(osr, downsample):
 
 def respond(success, error=None, status=200, content_type=None):
  
+    if error:
+        logger.debug(''.join(tb.format_exception(type(error), error, error.__traceback__)))
     response = {
         'statusCode': status,
-        'body': ''.join(tb.format_exception(type(error), error, error.__traceback__)) if error else success,
+        'body': str(error) if error else success,
         'headers': {
             'Strict-Transport-Security': "max-age=31536000",
             'Content-Security-Policy': f"default-src 'self'; frame-ancestors {FRAME_ANCESTORS}",
@@ -199,5 +201,4 @@ def tile_handler(event, context):
     except openslide.OpenSlideError:
         return respond(f'Image ID {imageId} not found', None, 404)
     except Exception as e:
-        logger.debug(e)
         return respond(None, e, 400)
