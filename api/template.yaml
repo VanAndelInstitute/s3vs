@@ -53,23 +53,18 @@ Parameters:
     Type: String
     Description: URL of the metadata upload endpoint
     Default: "85"
+  AllowedSigningProfiles:
+    Type: CommaDelimitedList
+    Description: List of profile version ARNs for the allowed signing profiles
 
 Resources:
-  SigningProfile:
-    Type: AWS::Signer::SigningProfile
-    Properties: 
-      PlatformId: AWSLambda-SHA384-ECDSA
-      SignatureValidityPeriod: 
-        Type: YEARS
-        Value: 5
   CodeSigningConfig:
     Type: AWS::Lambda::CodeSigningConfig
     Properties: 
       AllowedPublishers: 
-        SigningProfileVersionArns:
-          - !GetAtt SigningProfile.ProfileVersionArn
+        SigningProfileVersionArns: !Ref AllowedSigningProfiles
       CodeSigningPolicies: 
-          UntrustedArtifactOnDeployment: Warn
+          UntrustedArtifactOnDeployment: Enforce
       Description: !Sub ${AWS::StackName}-signing
   ImageInfo:
     Type: AWS::Serverless::Function
