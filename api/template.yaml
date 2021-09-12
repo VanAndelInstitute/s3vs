@@ -208,6 +208,9 @@ Resources:
             ApiId: !Ref HttpApi
             Path: /image-service/{imageId}/{region}/{size}/0/default.jpg
             Method: GET
+            RouteSettings:
+              ThrottlingBurstLimit: 100
+              ThrottlingRateLimit: 400
   ImportMetadata:
     Type: AWS::Serverless::Function
     Properties:
@@ -253,6 +256,9 @@ Resources:
       CorsConfiguration:
         AllowMethods: [GET]
         AllowOrigins: ['*']
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 10
   ApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping
     DependsOn:
