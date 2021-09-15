@@ -1,5 +1,5 @@
 # S<sup>3</sup>VS back-end API/service
-The back-end is implemented in Python (which has the lowest Lambda cold start times) and uses [Pillow-SIMD](https://github.com/uploadcare/pillow-simd) for shrinking tiles (as needed), ICC Profile colorspace conversion, and JPEG compression.
+The back-end is implemented in Python (which has the lowest Lambda cold start times) and uses [Pillow-SIMD](https://github.com/uploadcare/pillow-simd) for shrinking tiles (as needed), Aperio-to-sRGB color space conversion, and JPEG compression.
 
 ## Prerequisites
 The infrastructure code is currently a [SAM app](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/what-is-sam.html). You'll need to install the [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html). You'll also need to [install Docker](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install-mac.html#serverless-sam-cli-install-mac-docker) for the [`--use-container` flag](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-using-build.html#build-zip-archive) to build the native Linux binaries for the OpenSlide and libdmtx Lambda layers.

@@ -28,7 +28,10 @@ else:
     logger.setLevel(logging.INFO)
 
 open_slides = {}
-colorTransforms = {}
+colorTransforms = {
+    'AT2': None,
+    'ScanScope v1': None
+}
 
 def get_best_level_for_downsample(osr, downsample):
     """ Use our own implementation of this since OpenSlide's doesn't handle 
@@ -37,6 +40,19 @@ def get_best_level_for_downsample(osr, downsample):
         if round(downsample) < round(osr.level_downsamples[i]):
             return 0 if i == 0 else i-1
     return osr.level_count - 1
+
+def get_color_transform(icc_profile_name):
+    dest_icc = ImageCms.ImageCmsProfile(ICC_DEST)
+    if not colorTransforms[icc_profile_name]:
+        if icc_profile_name == 'AT2':
+            source_icc = ImageCms.ImageCmsProfile(ICC_AT2)
+        elif icc_profile_name == 'ScanScope v1':
+            source_icc = ImageCms.ImageCmsProfile(ICC_SCANSCOPE)
+        else:
+            return None
+        intent = ImageCms.getDefaultIntent(source_icc)
+        colorTransforms[icc_profile_name] = ImageCms.buildTransform(source_icc, dest_icc, 'RGBA', 'RGBA', intent)
+    return colorTransforms[icc_profile_name]
 
 def respond(success, error=None, status=200, content_type=None):
  
@@ -167,17 +183,10 @@ def tile_handler(event, context):
         
         if imageId in open_slides:
             osr = open_slides[imageId]
-            colorTransform = colorTransforms[imageId]
         else:
             osr = open_slides[imageId] = openslide.open_slide(f'/vsis3/{BUCKET_NAME}/{imageId}.svs')
-            icc_profile_name = osr.properties.get(ICC_PROFILE_PROPERTY_NAME)
-            if icc_profile_name == 'AT2':
-                source_icc = ImageCms.ImageCmsProfile(ICC_AT2)
-            elif icc_profile_name == 'ScanScope v1':
-                source_icc = ImageCms.ImageCmsProfile(ICC_SCANSCOPE)
-            dest_icc = ImageCms.ImageCmsProfile(ICC_DEST)
-            intent = ImageCms.getDefaultIntent(source_icc)
-            colorTransform = colorTransforms[imageId] = ImageCms.buildTransform(source_icc, dest_icc, 'RGBA', 'RGBA', intent)
+        colorTransform = get_color_transform(osr.properties.get(ICC_PROFILE_PROPERTY_NAME))
+
         x = int(region.group('x'))
         y = int(region.group('y'))
         w = int(region.group('w'))
@@ -190,13 +199,12 @@ def tile_handler(event, context):
         tile_im = osr.read_region((x,y), level, region_size)
         if tile_im.size != size:
             tile_im.thumbnail(size, Image.ANTIALIAS)
-        transformed_im = ImageCms.applyTransform(tile_im, colorTransform)
-        tile_im.close()
-        converted_im = transformed_im.convert('RGB')
-        transformed_im.close()
+        if colorTransform:
+            tile_im = ImageCms.applyTransform(tile_im, colorTransform)
+        tile_im = tile_im.convert('RGB')
         buf = BytesIO()
-        converted_im.save(buf, 'jpeg', quality=TILE_QUALITY)
-        converted_im.close()
+        tile_im.save(buf, 'jpeg', quality=TILE_QUALITY)
+        tile_im.close()
         return respond(base64.b64encode(buf.getvalue()), content_type=f'image/jpeg')
     except openslide.OpenSlideError:
         return respond(f'Image ID {imageId} not found', None, 404)
