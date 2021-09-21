@@ -78,6 +78,7 @@ def get_secret():
             return json.loads(base64.b64decode(get_secret_value_response['SecretBinary']))
 
 def match_id(block):
+    logger.debug(f'BlockType: {block["BlockType"]}')
     if block['BlockType'] != 'LINE':
         return False
     logger.debug(f'Text: {block["Text"]}')
@@ -141,10 +142,11 @@ def lambda_handler(event, context):
 
         # upload metadata
         auth = get_secret()
-        x = requests.post(url=UPLOAD_URL, auth=(auth['username'], auth['password']), data=metadata)
-        logger.debug(f'Upload responded with {x.status_code}: {x.reason}')
+        x = requests.post(url=UPLOAD_URL, auth=(auth['username'], auth['password']), data=metadata, allow_redirects=False)
+        logger.debug(f'Upload URL: {x.url}')
+        logger.debug(f'Upload responded with ({x.status_code}) {x.reason}: {x.text}')
         if (x.status_code < 200 | x.status_code >= 400):
-            raise UploadError(x.json())
+            logger.error(f'Upload responded with ({x.status_code}) {x.reason}: {x.text}')
     except Exception as e:
         logger.error(e)
         raise e

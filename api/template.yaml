@@ -217,8 +217,8 @@ Resources:
       MemorySize: 512
       CodeSigningConfigArn: !Ref CodeSigningConfig
       EventInvokeConfig:
-        MaximumEventAgeInSeconds: 180
-        MaximumRetryAttempts: 0
+        MaximumEventAgeInSeconds: 300
+        MaximumRetryAttempts: 2
       Environment:
         Variables:
           UPLOAD_URL: !Ref UploadURL
@@ -226,6 +226,7 @@ Resources:
           REGION_NAME: !Ref AWS::Region
           SLIDEID_FORMAT: !Ref SlideIdFormat
           TEXTRACT_THRESHOLD: !Ref TextractThreshold
+          AWS_S3_ENDPOINT: !Sub s3.${AWS::Region}.amazonaws.com
       Layers:
         - !Ref OpenSlideLayer
         - !Ref PillowSIMDLayer
