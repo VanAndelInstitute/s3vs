@@ -108,10 +108,9 @@ def lambda_handler(event, context):
         imageBytes = buf.getvalue()
         client = boto3.client('textract')
         response = client.detect_document_text(Document={'Bytes': imageBytes})
-        matches = [block['Text'] for block in response['Blocks'] if match_id(block)]
-        if len(matches) == 1:
-            slide_id = matches[0]
-        else:
+        # get the first line of text that looks like a valid slide ID
+        slide_id = next((block['Text'] for block in response['Blocks'] if match_id(block)), None)
+        if not slide_id:
             # decode slide id from 2D Data Matrix barcode in label image
             label_data = pylibdmtx.decode(label)
             if len(label_data) != 1:
@@ -119,6 +118,7 @@ def lambda_handler(event, context):
                 return
 
             slide_id = label_data[0].data.decode('ascii')
+            logger.debug(f'Barcode data: {slide_id}')
         label.close()
 
         # get metadata
