@@ -95,58 +95,57 @@ def lambda_handler(event, context):
     key = unquote_plus(event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     logger.info(f'Filename = {key}')
     try:
-        osr = openslide.open_slide(f'/vsis3/{bucket}/{key}')
-        
-        # get image id from tiff tags; create output folder
-        image_id = osr.properties.get(PROPERTY_NAME_APERIO_IMAGEID)
-        
-        # Extract label and thumbnail images
-        label = osr.associated_images.get(u'label').convert('RGB')
-        buf = BytesIO()
-        label.save(buf, format='JPEG')
-        #imageBytes = base64.b64encode(buf.getvalue())
-        imageBytes = buf.getvalue()
-        client = boto3.client('textract')
-        response = client.detect_document_text(Document={'Bytes': imageBytes})
-        # get the first line of text that looks like a valid slide ID
-        slide_id = next((block['Text'] for block in response['Blocks'] if match_id(block)), None)
-        if not slide_id:
-            # decode slide id from 2D Data Matrix barcode in label image
-            label_data = pylibdmtx.decode(label)
-            if len(label_data) != 1:
-                logger.error('Bad label data')
-                return
+        with openslide.OpenSlide(f'/vsis3/{bucket}/{key}') as osr:
+            
+            # get image id from tiff tags; create output folder
+            image_id = osr.properties.get(PROPERTY_NAME_APERIO_IMAGEID)
+            
+            # Extract label and thumbnail images
+            label = osr.associated_images.get(u'label').convert('RGB')
+            buf = BytesIO()
+            label.save(buf, format='JPEG')
+            #imageBytes = base64.b64encode(buf.getvalue())
+            imageBytes = buf.getvalue()
+            client = boto3.client('textract')
+            response = client.detect_document_text(Document={'Bytes': imageBytes})
+            # get the first line of text that looks like a valid slide ID
+            slide_id = next((block['Text'] for block in response['Blocks'] if match_id(block)), None)
+            if not slide_id:
+                # decode slide id from 2D Data Matrix barcode in label image
+                label_data = pylibdmtx.decode(label)
+                if len(label_data) != 1:
+                    logger.error('Bad label data')
+                    return
 
-            slide_id = label_data[0].data.decode('ascii')
-            logger.debug(f'Barcode data: {slide_id}')
-        label.close()
+                slide_id = label_data[0].data.decode('ascii')
+                logger.debug(f'Barcode data: {slide_id}')
+            label.close()
 
-        # get metadata
-        # width, height = osr.dimensions
-        # scan_date = osr.properties.get(PROPERTY_NAME_APERIO_DATE)
-        # scan_time = osr.properties.get(PROPERTY_NAME_APERIO_TIME)
-        # scan_timezone = osr.properties.get(PROPERTY_NAME_APERIO_TZ)
-        # scandate = datetime.strptime(f'{scan_date} {scan_time} {scan_timezone}', '%m/%d/%y %H:%M:%S %Z%z')
-        metadata = json.dumps({
-            # 'Filename': key.strip(),
-            'ImageId': int(image_id.strip()),
-            'SlideId': slide_id.strip(),
-            # 'width': width,
-            # 'height': height,
-            # 'ScanDate': scandate.isoformat(),
-            # 'MPP': osr.properties.get(PROPERTY_NAME_APERIO_MPP),
-            # 'AppMag': osr.properties.get(PROPERTY_NAME_APERIO_APPMAG),
-            # 'lastModified': datetime.now(timezone.utc).isoformat(timespec='milliseconds'),
-        })
-        logger.debug(metadata)
+            # get metadata
+            # width, height = osr.dimensions
+            # scan_date = osr.properties.get(PROPERTY_NAME_APERIO_DATE)
+            # scan_time = osr.properties.get(PROPERTY_NAME_APERIO_TIME)
+            # scan_timezone = osr.properties.get(PROPERTY_NAME_APERIO_TZ)
+            # scandate = datetime.strptime(f'{scan_date} {scan_time} {scan_timezone}', '%m/%d/%y %H:%M:%S %Z%z')
+            metadata = json.dumps({
+                # 'Filename': key.strip(),
+                'ImageId': int(image_id.strip()),
+                'SlideId': slide_id.strip(),
+                # 'width': width,
+                # 'height': height,
+                # 'ScanDate': scandate.isoformat(),
+                # 'MPP': osr.properties.get(PROPERTY_NAME_APERIO_MPP),
+                # 'AppMag': osr.properties.get(PROPERTY_NAME_APERIO_APPMAG),
+                # 'lastModified': datetime.now(timezone.utc).isoformat(timespec='milliseconds'),
+            })
+            logger.debug(metadata)
 
-        # upload metadata
-        auth = get_secret()
-        x = requests.post(url=UPLOAD_URL, auth=(auth['username'], auth['password']), data=metadata, allow_redirects=False)
-        logger.debug(f'Upload URL: {x.url}')
-        logger.debug(f'Upload responded with ({x.status_code}) {x.reason}: {x.text}')
-        if (x.status_code < 200 | x.status_code >= 400):
-            logger.error(f'Upload responded with ({x.status_code}) {x.reason}: {x.text}')
+            # upload metadata
+            auth = get_secret()
+            x = requests.post(url=UPLOAD_URL, auth=(auth['username'], auth['password']), data=metadata, allow_redirects=False)
+            logger.debug(f'Upload URL: {x.url}')
+            loglvl = logger.error if (x.status_code < 200 | x.status_code >= 400) else logger.info
+            loglvl(f'Upload responded with ({x.status_code}) {x.reason}: {x.text}')
     except Exception as e:
         logger.error(e)
         raise e
