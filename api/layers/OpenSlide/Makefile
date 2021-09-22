@@ -1,5 +1,4 @@
 build-OpenSlide:
-	yum install -y git autoconf, automake, libtool, and pkg-config
 	yum install -y libjpeg-turbo-devel openjpeg2-devel libtiff-devel cairo-devel gdk-pixbuf2-devel sqlite-devel libxml2-devel libcurl-devel
 	mkdir -p "$(ARTIFACTS_DIR)/lib"
 	cp /usr/lib64/libcairo.so.2 "$(ARTIFACTS_DIR)/lib"
@@ -47,8 +46,7 @@ build-OpenSlide:
 	cp /usr/lib64/libsmime3.so "$(ARTIFACTS_DIR)/lib"
 	cp /usr/lib64/libnss3.so "$(ARTIFACTS_DIR)/lib"
 
-	yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-	yum --enablerepo=epel install -y cmake3
+	yum install -y cmake3
 	git clone https://github.com/json-c/json-c.git
 	mkdir json-c-build
 	cd json-c-build \
@@ -57,7 +55,7 @@ build-OpenSlide:
 	&& make install
 	cp /usr/lib64/libjson-c.so.5 "$(ARTIFACTS_DIR)/lib"
 
-	curl -o gdal.zip -L https://github.com/VanAndelInstitute/gdal-vsi/archive/refs/heads/master.zip
+	curl -o gdal.zip -L https://github.com/VanAndelInstitute/gdal-vsi/archive/master.zip
 	unzip gdal.zip
 	cd gdal-vsi-master/gdal \
 	&& ./configure --with-proj=no --disable-all-optional-drivers --prefix=/usr --libdir=/usr/lib64 \
