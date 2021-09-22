@@ -57,6 +57,13 @@ Parameters:
     Type: CommaDelimitedList
     Description: List of profile version ARNs for the allowed signing profiles
 
+Globals:
+  Function:
+    Runtime: python3.9
+    Environment:
+      Variables:
+        GDAL_DISABLE_READDIR_ON_OPEN: 'YES'
+
 Resources:
   CodeSigningConfig:
     Type: AWS::Lambda::CodeSigningConfig
@@ -72,7 +79,6 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImageInfo
       CodeUri: image-service
       Handler: app.info_handler
-      Runtime: python3.9
       Timeout: 20
       MemorySize: 640
       CodeSigningConfigArn: !Ref CodeSigningConfig
@@ -100,7 +106,6 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImageProperties
       CodeUri: image-service
       Handler: app.properties_handler
-      Runtime: python3.9
       Timeout: 20
       MemorySize: 640
       CodeSigningConfigArn: !Ref CodeSigningConfig
@@ -127,7 +132,6 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImageLabel
       CodeUri: image-service
       Handler: app.label_handler
-      Runtime: python3.9
       Timeout: 20
       MemorySize: 640
       CodeSigningConfigArn: !Ref CodeSigningConfig
@@ -154,7 +158,6 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImageThumbnail
       CodeUri: image-service
       Handler: app.thumbnail_handler
-      Runtime: python3.9
       Timeout: 20
       MemorySize: 640
       CodeSigningConfigArn: !Ref CodeSigningConfig
@@ -181,7 +184,6 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImageTile
       CodeUri: image-service
       Handler: app.tile_handler
-      Runtime: python3.9
       Timeout: 20
       MemorySize: 640
       CodeSigningConfigArn: !Ref CodeSigningConfig
@@ -212,13 +214,12 @@ Resources:
       FunctionName: !Sub ${AWS::StackName}-ImportMetadata
       CodeUri: import-metadata
       Handler: app.lambda_handler
-      Runtime: python3.9
       Timeout: 60
       MemorySize: 512
       CodeSigningConfigArn: !Ref CodeSigningConfig
       EventInvokeConfig:
-        MaximumEventAgeInSeconds: 300
-        MaximumRetryAttempts: 2
+        MaximumEventAgeInSeconds: 180
+        MaximumRetryAttempts: 0
       Environment:
         Variables:
           UPLOAD_URL: !Ref UploadURL
@@ -226,7 +227,6 @@ Resources:
           REGION_NAME: !Ref AWS::Region
           SLIDEID_FORMAT: !Ref SlideIdFormat
           TEXTRACT_THRESHOLD: !Ref TextractThreshold
-          AWS_S3_ENDPOINT: !Sub s3.${AWS::Region}.amazonaws.com
       Layers:
         - !Ref OpenSlideLayer
         - !Ref PillowSIMDLayer
