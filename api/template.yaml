@@ -29,6 +29,7 @@ Parameters:
   CustomDomainName:
     Type: String
     Description: FQDN of the API custom domain
+    Default: ""
   OpenSlideLayer:
     Type: String
     Description:  ARN of the Lambda layer version for OpenSlide
@@ -38,6 +39,7 @@ Parameters:
   libdmtxLayer:
     Type: String
     Description:  ARN of the Lambda layer version for libdmtx
+    Default: ""
   IccProfilesLayer:
     Type: String
     Description:  ARN of the Lambda layer version for ICC profile files
@@ -56,6 +58,18 @@ Parameters:
   AllowedSigningProfiles:
     Type: CommaDelimitedList
     Description: List of profile version ARNs for the allowed signing profiles
+
+Conditions:
+  uploadURL:
+    Fn::Not:
+    - Fn::Equals:
+      - ''
+      - !Ref UploadURL
+  customDomainName:
+    Fn::Not:
+    - Fn::Equals:
+      - ''
+      - !Ref CustomDomainName
 
 Globals:
   Function:
@@ -84,7 +98,10 @@ Resources:
       CodeSigningConfigArn: !Ref CodeSigningConfig
       Environment:
         Variables:
-          API_URL: !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
+          API_URL: !If
+            - customDomainName
+            - !Sub https://${CustomDomainName}/${AWS::StackName}/image-service/
+            - !Ref AWS::NoValue # must be set manually
           BUCKET_NAME: !Ref SlidesBucketName
           FRAME_ANCESTORS: !Ref FrameAncestors
       Layers:
@@ -210,6 +227,7 @@ Resources:
               ThrottlingRateLimit: 400
   ImportMetadata:
     Type: AWS::Serverless::Function
+    Condition: uploadURL
     Properties:
       FunctionName: !Sub ${AWS::StackName}-ImportMetadata
       CodeUri: import-metadata
@@ -239,6 +257,7 @@ Resources:
         - TextractDetectAnalyzePolicy: {}
   ImportMetadataUploadEventPermission:
     Type: AWS::Lambda::Permission
+    Condition: uploadURL
     Properties: 
       Action: lambda:InvokeFunction
       FunctionName: !GetAtt ImportMetadata.Arn
@@ -257,6 +276,7 @@ Resources:
         ThrottlingRateLimit: 10
   ApiMapping:
     Type: AWS::ApiGatewayV2::ApiMapping
+    Condition: customDomainName
     DependsOn:
       - HttpApiStage
     Properties: 
@@ -271,4 +291,4 @@ Outputs:
     Value: !Ref HttpApi
   ApiUrl:
     Description: URL of the API endpoint
-    Value: !Sub https://${CustomDomainName}/${AWS::StackName}/
+    Value: !If [customDomainName, !Sub 'https://${CustomDomainName}/${AWS::StackName}/', !GetAtt HttpApi.ApiEndpoint]
