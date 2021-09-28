@@ -1,0 +1,25 @@
+version = 0.1
+[default.global.parameters]
+s3_bucket = "s3vs-deployment"
+s3_prefix = "s3vs"
+region = "us-east-2"
+signing_profiles = """\
+    ImageInfo=\"s3vs\" \
+    ImageProperties=\"s3vs\" \
+    ImageLabel=\"s3vs\" \
+    ImageThumbnail=\"s3vs\" \
+    ImageTile=\"s3vs\" \
+    ImportMetadata=\"s3vs\" \
+    """
+
+[default.deploy.parameters]
+stack_name = "s3vs"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = """\
+    SlidesBucketName=s3vs-demo-site-slides \
+    OpenSlideLayer=arn:aws:lambda:us-east-2:390666399117:layer:OpenSlide:1 \
+    PillowSIMDLayer=arn:aws:lambda:us-east-2:390666399117:layer:PillowSIMD:1 \
+    IccProfilesLayer=arn:aws:lambda:us-east-2:390666399117:layer:IccProfiles:1 \
+    AllowedSigningProfiles=\"arn:aws:signer:us-east-2:390666399117:/signing-profiles/s3vs/MQEf5Wytlh\"
+    """

@@ -1,0 +1,16 @@
+version = 0.1
+[default.global.parameters]
+s3_bucket = "s3vs-deployment"
+s3_prefix = "s3vs-lambda-layers"
+region = "us-east-2"
+signing_profiles = """\
+    OpenSlide=\"s3vs\" \
+    PillowSIMD=\"s3vs\" \
+    libdmtx=\"s3vs\" \
+    IccProfiles=\"s3vs\" \
+    """
+
+[default.deploy.parameters]
+stack_name = "s3vs-lambda-layers"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
