@@ -27,6 +27,7 @@ SECRET_NAME = os.environ.get('SECRET_NAME')
 REGION_NAME = os.environ.get('REGION_NAME')
 SLIDEID_FORMAT = os.environ.get('SLIDEID_FORMAT', r'\w+')
 TEXTRACT_THRESHOLD = os.environ.get('TEXTRACT_THRESHOLD', 85)
+ERROR_TOPIC_ARN = os.environ.get('ERROR_TOPIC_ARN')
 if (os.environ.get('DEBUG', False)):
     logger.setLevel(logging.DEBUG)
 else:
@@ -146,6 +147,12 @@ def lambda_handler(event, context):
             logger.debug(f'Upload URL: {x.url}')
             loglvl = logger.error if (x.status_code < 200 | x.status_code >= 400) else logger.info
             loglvl(f'Upload responded with ({x.status_code}) {x.reason}: {x.text}')
-    except Exception as e:
-        logger.error(e)
-        raise e
+    except Exception as ex:
+        logger.error(ex)
+        client = boto3.client('sns')
+        response = client.publish(
+            TopicArn=ERROR_TOPIC_ARN,
+            Subject=f'ImportMetadata: error processing {key}',
+            Message=str(ex),
+        )
+        raise ex

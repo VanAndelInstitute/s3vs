@@ -225,6 +225,8 @@ Resources:
             RouteSettings:
               ThrottlingBurstLimit: 100
               ThrottlingRateLimit: 400
+  ApplicationErrorsTopic:
+    Type: AWS::SNS::Topic
   ImportMetadata:
     Type: AWS::Serverless::Function
     Condition: uploadURL
@@ -245,6 +247,7 @@ Resources:
           REGION_NAME: !Ref AWS::Region
           SLIDEID_FORMAT: !Ref SlideIdFormat
           TEXTRACT_THRESHOLD: !Ref TextractThreshold
+          ERROR_TOPIC_ARN: !Ref ApplicationErrorsTopic
       Layers:
         - !Ref OpenSlideLayer
         - !Ref PillowSIMDLayer
@@ -255,6 +258,8 @@ Resources:
         - AWSSecretsManagerGetSecretValuePolicy:
             SecretArn: !Ref SecretArn
         - TextractDetectAnalyzePolicy: {}
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ApplicationErrorsTopic.TopicName
   ImportMetadataUploadEventPermission:
     Type: AWS::Lambda::Permission
     Condition: uploadURL
@@ -264,6 +269,28 @@ Resources:
       Principal: s3.amazonaws.com
       SourceAccount: !Ref AWS::AccountId
       SourceArn: !Sub arn:aws:s3:::${SlidesBucketName}
+  ImportMetadataTimedOutMetricFilter: 
+    Type: AWS::Logs::MetricFilter
+    Properties: 
+      LogGroupName: !Sub /aws/lambda/${AWS::StackName}-ImportMetadata
+      FilterPattern: 'Task timed out'
+      MetricTransformations: 
+        - MetricValue: 1
+          MetricNamespace: CustomErrorMetrics
+          MetricName: !Sub ${AWS::StackName}-ImportMetadataTimedOut
+  ImportMetadataTimedOutMetricAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties: 
+      AlarmActions: 
+        - !Ref ApplicationErrorsTopic
+      AlarmDescription: 'Let us know if the slide ID/barcode took too long to scan from the label image.'
+      ComparisonOperator: GreaterThanThreshold
+      EvaluationPeriods: 1
+      MetricName: !Sub ${AWS::StackName}-ImportMetadataTimedOut
+      Namespace: CustomErrorMetrics
+      Period: 60
+      Statistic: Sum
+      Threshold: 0
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
