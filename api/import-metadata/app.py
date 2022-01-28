@@ -4,6 +4,7 @@ import json
 from urllib.parse import unquote_plus
 from datetime import datetime, timezone
 import logging
+import traceback
 import re
 from io import BytesIO
 import boto3
@@ -42,7 +43,7 @@ def match_id(block):
         return False
     return True
 
-def lambda_handler(event, context):
+def lambda_handler(event, _context):
     ''' Given S3 upload event, retrieve the image metadata and publish to SNS topic'''
     logger.debug(json.dumps(event))
     bucket = event['Records'][0]['s3']['bucket']['name']
@@ -100,12 +101,11 @@ def lambda_handler(event, context):
             TopicArn=METADATA_TOPIC_ARN,
             Message=metadata,
         )
-    except Exception as ex:
-        logger.error(ex)
+    except Exception:
         client = boto3.client('sns')
-        response = client.publish(
+        client.publish(
             TopicArn=ERROR_TOPIC_ARN,
             Subject=f'ImportMetadata: error processing {key}',
-            Message=str(ex),
+            Message=traceback.format_exc(),
         )
-        raise ex
+        raise
