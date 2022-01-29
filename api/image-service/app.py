@@ -85,9 +85,9 @@ def info_handler(event, _context):
         Returns: an IIIF info.json response '''
     image_id = event['pathParameters']['imageId']
     logger.info(image_id)
-    match = re.fullmatch(r'\w+', event['pathParameters']['imageId'])
+    match = re.fullmatch(r'\w+', image_id)
     if not match:
-        return respond('Invalid image ID', 404)
+        return respond('Invalid image ID', 400)
     if image_id in open_slides:
         osr = open_slides[image_id]
     else:
@@ -118,6 +118,9 @@ def properties_handler(event, _context):
         Returns: OpenSlide properties '''
     image_id = event['pathParameters']['imageId']
     logger.info(image_id)
+    match = re.fullmatch(r'\w+', image_id)
+    if not match:
+        return respond('Invalid image ID', 400)
     if image_id in open_slides:
         osr = open_slides[image_id]
     else:

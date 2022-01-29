@@ -16,9 +16,21 @@ const parseQueryString = () => {
   return params;
 }
 
+const showErrorMsg = (msg) => {
+  var span = document.createElement('span');
+  span.style.color = "black";
+  span.style.fontSize = "x-large";
+  span.appendChild(document.createTextNode(msg));
+  document.getElementById('root').replaceWith(span);
+}
+
 (async function($) {
     let params = parseQueryString();
     let imageId = params["imageId"];
+    if (! (/^\w+$/.test(imageId))) {
+      showErrorMsg("Invalid image ID");
+      return
+    }
     var label = document.getElementById("label");
     label.src = `${config.iiifUri}/${imageId}/label.jpg`;
     let viewer = new $.Viewer({
@@ -42,11 +54,7 @@ const parseQueryString = () => {
       });
       if (!response.ok) {
         let error = await response.text();
-        var span = document.createElement('span');
-        span.style.color = "black";
-        span.style.fontSize = "x-large";
-        span.appendChild(document.createTextNode(error));
-        document.getElementById('root').replaceWith(span);
+        showErrorMsg(error);
         return
       }
       let props = await response.json();
